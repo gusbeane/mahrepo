@@ -30,7 +30,7 @@ $(info CONFIG: $(CONFIG))
 $(info EXEC: $(EXEC))
 $(info )
 
-PYTHON = python
+PYTHON = python3
 PERL   = /usr/bin/perl
 RESULT     := $(shell CONFIG=$(CONFIG) PERL=$(PERL) BUILD_DIR=$(BUILD_DIR) make -f config-makefile)
 CONFIGVARS := $(shell cat $(BUILD_DIR)/arepoconfig.h)
@@ -65,6 +65,27 @@ HDF5_LIB  = -L/opt/local/lib  -lhdf5 -lz
 HWLOC_INCL= -I/opt/local/include
 endif
 # end of Darwin
+
+# e.g. Mac OS using MacPorts modules for openmpi, fftw, gsl, hdf5 and hwloc
+ifeq ($(SYSTYPE),"Homebrew")
+# compiler and its optimization options
+CC        =  mpicc   # sets the C-compiler
+OPTIMIZE  =  -std=c11 -ggdb -O3 -Wall -Wno-format-security -Wno-unknown-pragmas -Wno-unused-function
+
+# overwrite default:
+MPICH_LIB = -lmpi
+GSL_INCL  = -I/opt/homebrew/include
+GSL_LIB   = -L/opt/homebrew/lib -lgsl -lgslcblas
+HWLOC_LIB = -L/opt/homebrew/lib -lhwloc
+
+# libraries that are included on demand, depending on Config.sh options
+FFTW_INCL = -I/opt/homebrew/include -I/usr/homebrew/include
+FFTW_LIBS = -L/opt/homebrew/lib -I/usr/homebrew/lib
+HDF5_INCL = -I/opt/homebrew/include -DH5_USE_16_API
+HDF5_LIB  = -L/opt/homebrew/lib  -lhdf5 -lz
+HWLOC_INCL= -I/opt/homebrew/include
+endif
+# end of Homebrew
 
 # Ubuntu Linux
 ifeq ($(SYSTYPE),"Ubuntu")
