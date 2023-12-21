@@ -957,10 +957,6 @@ void share_particle_number_in_file(const char *fname, int filenr, int readTask, 
         ntype_in_files[filenr].npart[type] = header.npart[type];
 #endif /* #if defined(RECOMPUTE_POTENTIAL_IN_SNAPSHOT) */
     }
-
-#ifdef SUBHALO_GRAV
-  All.NumSubhalo = header.npartTotal[SUBHALO_GRAV];
-#endif
 }
 
 /*! \brief Reads a single snapshot file.
