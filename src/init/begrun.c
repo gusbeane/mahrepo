@@ -266,6 +266,10 @@ void set_units(void)
   double Mtot;
 #endif /* #ifdef STATICNFW */
 
+#ifdef SUBHALO_GRAV
+  double Sub_Mtot;
+#endif
+
   All.UnitTime_in_s         = All.UnitLength_in_cm / All.UnitVelocity_in_cm_per_s;
   All.UnitTime_in_Megayears = All.UnitTime_in_s / SEC_PER_MEGAYEAR;
 
@@ -321,6 +325,22 @@ void set_units(void)
   Mtot = enclosed_mass(R200);
   mpi_printf("M200= %g\n", Mtot);
 #endif /* #ifdef STATICNFW */
+
+#ifdef SUBHALO_GRAV
+  Sub_R200    = pow(SUBHALO_M200 * All.G / (100 * All.Hubble * All.Hubble), 1.0 / 3);
+  Sub_Rs      = Sub_R200 / SUBHALO_C;
+  Sub_Dc      = 200.0 / 3 * SUBHALO_C * SUBHALO_C * SUBHALO_C / (log(1 + SUBHALO_C) - SUBHALO_C / (1 + SUBHALO_C));
+  Sub_RhoCrit = 3 * All.Hubble * All.Hubble / (8 * M_PI * All.G);
+  Sub_V200    = 10 * All.Hubble * R200;
+  mpi_printf("Sub_V200= %g\n", V200);
+
+  Sub_fac  = 1.0;
+  Sub_Mtot = enclosed_mass(Sub_R200);
+  mpi_printf("Sub_M200= %g\n", Sub_Mtot);
+  Sub_fac  = Sub_V200 * Sub_V200 * Sub_V200 / (10 * All.G * All.Hubble) / Sub_Mtot;
+  Sub_Mtot = enclosed_mass(Sub_R200);
+  mpi_printf("Sub_M200= %g\n", Sub_Mtot);
+#endif /* #ifdef SUBHALO_GRAV */
 }
 
 /*! \brief deletes the end file if it exists.

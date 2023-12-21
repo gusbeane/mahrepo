@@ -226,6 +226,10 @@ struct subfind_data *PS;
 struct sph_particle_data *SphP, /*!< holds SPH particle data on local processor */
     *DomainSphBuf;              /*!< buffer for SPH particle data in domain decomposition */
 
+#ifdef SUBHALO_GRAV
+struct subhalo_particle_data *SubP;
+#endif
+
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
 struct special_particle_data *PartSpecialListGlobal;
 #endif /* #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE */
@@ -318,6 +322,13 @@ double Dc;
 double RhoCrit, V200;
 double fac;
 #endif /* #ifdef STATICNFW */
+
+#ifdef SUBHALO_GRAV
+double Sub_Rs, Sub_R200;
+double Sub_Dc;
+double Sub_RhoCrit, Sub_V200;
+double Sub_fac;
+#endif /* #ifdef SUBHALO_GRAV */
 
 int MaxThreads = 1;
 

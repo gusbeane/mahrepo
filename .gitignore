@@ -31,3 +31,5 @@ run.sh
 
 #documentation build
 /documentation/build
+
+tmp/

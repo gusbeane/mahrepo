@@ -562,6 +562,18 @@ int init(void)
 
   free_mesh();
 
+#ifdef SUBHALO_GRAV
+  int NumSubhalo;
+  for(int i; i < NumPart; i++)
+    if(P[i].Type == SUBHALO_GRAV)
+      NumSubhalo++;
+
+  MPI_Allreduce(&NumSubhalo, &All.NumSubhalo, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+// this should probably be moved to allocate.c, but lets fix that later
+  SubP = (struct subhalo_particle_data *)mymalloc_movable(&SubP, "SubP", All.NumSubhalo * sizeof(struct subhalo_particle_data));
+#endif
+
   return -1;  // return -1 means we ran to completion, i.e. not an endrun code
 }
 

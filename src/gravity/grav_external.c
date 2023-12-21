@@ -50,6 +50,11 @@
 #ifdef EXTERNALGRAVITY
 static void gravity_external_get_force(double pos[3], int type, MyIDType ID, double acc[3], double *pot, int *flag_set);
 
+#ifdef SUBHALO_GRAV
+void communicate_subhalo_positions(void);
+double subhalo_enclosed_mass(double R);
+#endif
+
 /*! \brief Main routine to add contribution of external gravitational potential
  *  to accelerations.
  *
@@ -64,6 +69,10 @@ void gravity_external(void)
   mpi_printf("EXTERNALGRAVITY: execute\n");
 
   TIMER_START(CPU_TREE);
+
+#ifdef SUBHALO_GRAV
+  communicate_subhalo_positions();
+#endif
 
   for(int idx = 0; idx < TimeBinsGravity.NActiveParticles; idx++)
     {
@@ -235,6 +244,30 @@ static void gravity_external_get_force(double pos[3], int type, MyIDType ID, dou
       }
   }
 #endif /* #ifdef STATICHQ */
+
+#ifdef SUBHALO_GRAV
+  {
+    double r, m;
+    double dx, dy, dz;
+
+    for(int i=0; i<All.NumSubhalo; i++){
+      dx = pos[0] - SubP[i].Pos[0];
+      dy = pos[1] - SubP[i].Pos[1];
+      dz = pos[2] - SubP[i].Pos[2];
+
+      r = sqrt(dx * dx + dy * dy + dz * dz);
+
+      m = subhalo_enclosed_mass(r);
+      if(r > 0)
+      {
+        acc[0] += -All.G * m * dx / (r * r * r);
+        acc[1] += -All.G * m * dy / (r * r * r);
+        acc[2] += -All.G * m * dz / (r * r * r);
+      }
+    }
+  }
+#endif /* #ifdef SUBHALO_GRAV */
+
 }
 #endif /* #ifdef EXTERNALGRAVITY */
 
@@ -298,6 +331,29 @@ double enclosed_mass(double R)
               ((NFW_Eps - 1) * (NFW_Eps - 1) * (R + Rs)));
 }
 #endif /* #ifdef STATICNFW */
+
+#ifdef SUBHALO_GRAV
+/*! \brief Auxiliary function for static NFW potential.
+ *
+ *  \param[in] R Radius from center of potential.
+ *
+ *  \return Enclosed mass (which causes the external potential).
+ */
+double subhalo_enclosed_mass(double R)
+{
+  /* Eps is in units of Rs !!!! */
+
+  if(R > Sub_Rs * SUBHALO_C)
+    R = Sub_Rs * SUBHALO_C;
+
+  return Sub_fac * 4 * M_PI * Sub_RhoCrit * Sub_Dc *
+         (-(Sub_Rs * Sub_Rs * Sub_Rs * (1 - SUBHALO_Eps + log(Sub_Rs) - 2 * SUBHALO_Eps * log(Sub_Rs) + SUBHALO_Eps * SUBHALO_Eps * log(SUBHALO_Eps * Sub_Rs))) /
+              ((SUBHALO_Eps - 1) * (SUBHALO_Eps - 1)) +
+          (Sub_Rs * Sub_Rs * Sub_Rs *
+           (Sub_Rs - SUBHALO_Eps * Sub_Rs - (2 * SUBHALO_Eps - 1) * (R + Sub_Rs) * log(R + Sub_Rs) + SUBHALO_Eps * SUBHALO_Eps * (R + Sub_Rs) * log(R + SUBHALO_Eps * Sub_Rs))) /
+              ((SUBHALO_Eps - 1) * (SUBHALO_Eps - 1) * (R + Sub_Rs)));
+}
+#endif
 
 #ifdef EXACT_GRAVITY_FOR_PARTICLE_TYPE
 /*! \brief Routine that computes gravitational force by direct summation.
@@ -577,3 +633,55 @@ void special_particle_update_list()
   myfree(SpecialPartList);
 }
 #endif /* #ifdef  EXACT_GRAVITY_FOR_PARTICLE_TYPE */
+
+#ifdef SUBHALO_GRAV
+/*! \brief Routine that communicates subhalo positions.
+ *
+ *  \return void
+ */
+void communicate_subhalo_positions(void)
+{
+  // collect subhalo positions from all tasks
+  // first figure out how many subhalos are on this task
+  // and store the positions
+  int NSubHaloThisTask = 0;
+  int NSubHaloEachTask[NTask];
+  double SubhaloPos[3*All.NumSubhalo];
+  for(int i=0; i<NumPart; i++)
+    if(P[i].Type == SUBHALO_GRAV)
+    {
+      SubhaloPos[3*NSubHaloThisTask + 0] = P[i].Pos[0];
+      SubhaloPos[3*NSubHaloThisTask + 1] = P[i].Pos[1];
+      SubhaloPos[3*NSubHaloThisTask + 2] = P[i].Pos[2];
+      NSubHaloThisTask++;
+    }
+
+  MPI_Allgather(&NSubHaloThisTask, 1, MPI_INT, NSubHaloEachTask, 1, MPI_INT, MPI_COMM_WORLD);
+
+  // sanity check
+  int TotSubhaloCheck = 0;
+  for(int i=0; i<NTask; i++)
+    TotSubhaloCheck += NSubHaloEachTask[i];
+  if(TotSubhaloCheck != All.NumSubhalo)
+    terminate("TotSubhaloCheck=%d is not equal to All.NumSubhalo=%d\n", TotSubhaloCheck, All.NumSubhalo);
+
+  // Now gather subhalo positions on main task
+  int CumNum = NSubHaloEachTask[0];
+  for(int i=1; i<NTask; i++)
+  {
+    if(ThisTask == i)
+      MPI_Send(SubhaloPos, 3*NSubHaloEachTask[i], MPI_DOUBLE, 0, i, MPI_COMM_WORLD);
+    if(ThisTask == 0)
+      MPI_Recv(&SubhaloPos[3*CumNum], 3*NSubHaloEachTask[i], MPI_DOUBLE, i, i, 
+               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    CumNum += NSubHaloEachTask[i];
+  }
+
+  MPI_Bcast(SubhaloPos, 3*All.NumSubhalo, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+  // Now store the positions in the SubP global variable
+  for(int i=0; i<All.NumSubhalo; i++)
+    for(int j=0; j<3; j++)
+      SubP[i].Pos[j] = SubhaloPos[3*i + j];
+}
+#endif

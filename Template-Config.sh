@@ -109,6 +109,12 @@
 #HQ_C=10.0                     # concentration parameter of Hernquist potential
 #HQ_DARKFRACTION=0.9           # fraction in dark matter in Hernquist potential
 
+#--------------------------------------- Subhalo gravity particles
+#SUBHALO_GRAV=2                # include subhalo particles with NFW potentials for given particle types
+#SUBHALO_C=10.0                 # C for subhalo particles
+#SUBHALO_M200=0.01              # M200 for subhlao particles
+#SUBHALO_Eps=0.01              # softening for subhalo particles
+
 #--------------------------------------- Time integration options
 #FORCE_EQUAL_TIMESTEPS         # variable but global timestep
 #TREE_BASED_TIMESTEPS          # non-local timestep criterion (take 'signal speed' into account)

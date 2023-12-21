@@ -1208,6 +1208,10 @@ extern struct global_data_all_processes
 #endif /* #ifdef ONEDIMS_SPHERICAL */
 
   double GlobalDisplacementVector[3];
+  
+#ifdef SUBHALO_GRAV
+  int NumSubhalo;
+#endif
 } All;
 
 /*****************************************************************************
@@ -1277,6 +1281,21 @@ extern struct particle_data
   signed char TimeBinHydro;
 } * P,              /*!< holds particle data on local processor */
     *DomainPartBuf; /*!< buffer for particle data used in domain decomposition */
+
+/*****************************************************************************
+ ** subhalo particle data ****************************************************
+ ****************************************************************************/
+
+#ifdef SUBHALO_GRAV
+/*! \brief This structure holds all the information that is
+ *         stored for each particle of the simulation.
+ */
+extern struct subhalo_particle_data
+{
+  MyDouble Pos[3];       /*!< particle position at its current time */
+  MyIDType ID; /*!< unique ID of particle */
+} * SubP;             /*!< holds particle data on local processor */
+#endif
 
 /*****************************************************************************
  ** (sub)halo data ***********************************************************
@@ -1922,6 +1941,13 @@ extern double Dc;
 extern double RhoCrit, V200;
 extern double fac;
 #endif /* #ifdef STATICNFW */
+
+#ifdef SUBHALO_GRAV
+extern double Sub_Rs, Sub_R200;
+extern double Sub_Dc;
+extern double Sub_RhoCrit, Sub_V200;
+extern double Sub_fac;
+#endif /* #ifdef SUBHALO_GRAV */
 
 extern int MaxThreads;
 
